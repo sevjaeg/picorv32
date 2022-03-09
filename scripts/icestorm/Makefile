@@ -1,4 +1,4 @@
-TOOLCHAIN_PREFIX = riscv32-unknown-elf-
+TOOLCHAIN_PREFIX = /opt/riscv32imc/bin/riscv32-unknown-elf-
 
 ICE40_SIM_CELLS=$(shell yosys-config --datdir/ice40/cells_sim.v)
 
@@ -32,7 +32,7 @@ synth.json: example.v ../../picorv32.v firmware.hex
 	yosys -v3 -l synth.log -p 'synth_ice40 -top top -json $@; write_verilog -attr2comment synth.v' $(filter %.v, $^)
 
 example.asc: synth.json example.pcf
-	nextpnr-ice40 --hx8k --package ct256 --json $< --pcf example.pcf --asc $@
+	nextpnr-ice40 --up5k --package sg48 --json $< --pcf example.pcf --asc $@
 
 example.bin: example.asc
 	icepack $< $@
@@ -54,7 +54,7 @@ example_sim_vcd: example_tb.vvp
 ## post-synth simulation
 
 synth_tb.vvp: example_tb.v synth.json
-	iverilog -o $@ -s testbench synth.v example_tb.v $(ICE40_SIM_CELLS)
+	iverilog -o $@ -s testbench synth.v example_tb.v $(ICE40_SIM_CELLS) -D NO_ICE40_DEFAULT_ASSIGNMENTS
 	chmod -x $@
 
 synth_sim: synth_tb.vvp
@@ -70,7 +70,7 @@ route.v: example.asc example.pcf
 	icebox_vlog -L -n top -sp example.pcf $< > $@
 
 route_tb.vvp: route.v example_tb.v
-	iverilog -o $@ -s testbench $^ $(ICE40_SIM_CELLS)
+	iverilog -o $@ -s testbench $^ $(ICE40_SIM_CELLS) -D NO_ICE40_DEFAULT_ASSIGNMENTS
 	chmod -x $@
 
 route_sim: route_tb.vvp
@@ -86,7 +86,7 @@ prog_sram: example.bin
 	iceprog -S $<
 
 timing: example.asc example.pcf
-	icetime -c 62 -tmd hx8k -P ct256 -p example.pcf -t $<
+	icetime -c 12 -tmd up5k -P sg48 -p example.pcf -t $<
 
 view: example.vcd
 	gtkwave $< example.gtkw

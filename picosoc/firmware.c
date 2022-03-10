@@ -20,6 +20,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "../dhrystone/dhry_top.h"
+
 #ifdef ICEBREAKER
 #  define MEM_TOTAL 0x20000 /* 128 KB */
 #elif HX8KDEMO
@@ -298,7 +300,7 @@ void cmd_memtest()
 	volatile uint32_t *base_word = (uint32_t *) 0;
 	volatile uint8_t *base_byte = (uint8_t *) 0;
 
-	print("Running memtest ");
+	print("Running memtest \n");
 
 	// Walk in stride increments, word access
 	for (int i = 1; i <= cyc_count; i++) {
@@ -309,7 +311,6 @@ void cmd_memtest()
 		}
 
 		state = i;
-
 		for (int word = 0; word < MEM_TOTAL / sizeof(int); word += stride) {
 			if (*(base_word + word) != xorshift32(&state)) {
 				print(" ***FAILED WORD*** at ");
@@ -709,7 +710,8 @@ void main()
 		print("   [7] Toggle continuous read mode\n");
 		print("   [9] Run simplistic benchmark\n");
 		print("   [0] Benchmark all configs\n");
-		print("   [M] Run Memtest\n");
+		print("   [D] Run Dhrystone Benchmark\n");
+		//print("   [M] Run Memtest\n");
 		print("   [S] Print SPI state\n");
 		print("   [e] Echo UART\n");
 		print("\n");
@@ -751,9 +753,13 @@ void main()
 			case '0':
 				cmd_benchmark_all();
 				break;
-			case 'M':
-				cmd_memtest();
+			case 'D':
+				run_dhrystone();
 				break;
+			// Overwrites RAM be careful
+			//case 'M':
+			//	cmd_memtest();
+			//	break;
 			case 'S':
 				cmd_print_spi_state();
 				break;

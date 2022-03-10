@@ -1,6 +1,8 @@
 
-CROSS=riscv32-unknown-elf-
-CFLAGS=
+CROSS=/opt/riscv32imc/bin/riscv32-unknown-elf-
+CFLAGS= -MD -O3
+
+DHRY_OBJS = dhrystone/dhry.h dhrystone/stdlib.c dhrystone/dhry_1.c dhrystone/dhry_2.c 
 
 # ---- iCE40 HX8K Breakout Board ----
 
@@ -85,8 +87,8 @@ icebprog_fw: icebreaker_fw.bin
 icebreaker_sections.lds: sections.lds
 	$(CROSS)cpp -P -DICEBREAKER -o $@ $^
 
-icebreaker_fw.elf: icebreaker_sections.lds start.s firmware.c
-	$(CROSS)gcc $(CFLAGS) -DICEBREAKER -mabi=ilp32 -march=rv32ic -Wl,-Bstatic,-T,icebreaker_sections.lds,--strip-debug -ffreestanding -nostdlib -o icebreaker_fw.elf start.s firmware.c
+icebreaker_fw.elf: icebreaker_sections.lds start.s firmware.c $(DHRY_OBJS)
+	$(CROSS)gcc $(CFLAGS) -DICEBREAKER -DTIME -DRISCV -DUSE_MYSTDLIB -ffreestanding -nostdlib -mabi=ilp32 -march=rv32im -Wl,-Bstatic,-T,icebreaker_sections.lds,-Map,icebreaker_fw.map,--strip-debug -o icebreaker_fw.elf start.s firmware.c $(DHRY_OBJS) -Wno-implicit-int -Wno-implicit-function-declaration
 
 icebreaker_fw.hex: icebreaker_fw.elf
 	$(CROSS)objcopy -O verilog icebreaker_fw.elf icebreaker_fw.hex
@@ -112,7 +114,7 @@ cmos.log: spimemio.v simpleuart.v picosoc.v ../picorv32.v
 clean:
 	rm -f testbench.vvp testbench.vcd spiflash_tb.vvp spiflash_tb.vcd
 	rm -f hx8kdemo_fw.elf hx8kdemo_fw.hex hx8kdemo_fw.bin cmos.log
-	rm -f icebreaker_fw.elf icebreaker_fw.hex icebreaker_fw.bin
+	rm -f icebreaker_fw.elf icebreaker_fw.hex icebreaker_fw.bin, icebreaker_fw.map
 	rm -f hx8kdemo.blif hx8kdemo.log hx8kdemo.asc hx8kdemo.rpt hx8kdemo.bin
 	rm -f hx8kdemo_syn.v hx8kdemo_syn_tb.vvp hx8kdemo_tb.vvp
 	rm -f icebreaker.json icebreaker.log icebreaker.asc icebreaker.rpt icebreaker.bin

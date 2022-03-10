@@ -1,5 +1,5 @@
-USE_MYSTDLIB = 0
-OBJS = dhry_1.o dhry_2.o stdlib.o
+USE_MYSTDLIB = 1
+OBJS = dhry_1.o dhry_2.o stdlib.o dhry_main.o
 CFLAGS = -MD -O3 -mabi=ilp32 -march=rv32im -DTIME -DRISCV
 TOOLCHAIN_PREFIX = /opt/riscv32im/bin/riscv32-unknown-elf-
 
@@ -58,7 +58,7 @@ endif
 %.o: %.S
 	$(TOOLCHAIN_PREFIX)gcc -c $(CFLAGS) $<
 
-dhry_1.o dhry_2.o: CFLAGS += -Wno-implicit-int -Wno-implicit-function-declaration
+dhry_1.o dhry_2.o dhry_main.o: CFLAGS += -Wno-implicit-int -Wno-implicit-function-declaration
 
 clean:
 	rm -rf *.o *.d dhry.elf dhry.map dhry.bin dhry.hex testbench.vvp testbench.vcd timing.vvp timing.txt testbench_nola.vvp

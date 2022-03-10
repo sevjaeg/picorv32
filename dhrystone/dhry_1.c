@@ -79,8 +79,7 @@ float           Microseconds,
 
 /* end of variables for time measurement */
 
-
-main ()
+void run_dhrystone ()
 /*****/
 
   /* main program, corresponds to procedures        */

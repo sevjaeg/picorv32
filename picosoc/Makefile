@@ -1,54 +1,16 @@
+# Select your RISC-V compiler here (riscv32i/riscv32im/riscv32ic/riscv32imc)
+RISCV_ISA = im
 
-CROSS=/opt/riscv32imc/bin/riscv32-unknown-elf-
+CROSS=/opt/riscv32$(RISCV_ISA)/bin/riscv32-unknown-elf-
 CFLAGS= -MD -O3
 
 DHRY_OBJS = dhrystone/dhry.h dhrystone/stdlib.c dhrystone/dhry_1.c dhrystone/dhry_2.c 
 
-# ---- iCE40 HX8K Breakout Board ----
+size: icebreaker_fw.elf
+	$(CROSS)size icebreaker_fw.elf
 
-hx8ksim: hx8kdemo_tb.vvp hx8kdemo_fw.hex
-	vvp -N $< +firmware=hx8kdemo_fw.hex
-
-hx8ksynsim: hx8kdemo_syn_tb.vvp hx8kdemo_fw.hex
-	vvp -N $< +firmware=hx8kdemo_fw.hex
-
-hx8kdemo.json: hx8kdemo.v spimemio.v simpleuart.v picosoc.v ../picorv32.v
-	yosys -ql hx8kdemo.log -p 'synth_ice40 -top hx8kdemo -json hx8kdemo.json' $^
-
-hx8kdemo_tb.vvp: hx8kdemo_tb.v hx8kdemo.v spimemio.v simpleuart.v picosoc.v ../picorv32.v spiflash.v
-	iverilog -s testbench -o $@ $^ `yosys-config --datdir/ice40/cells_sim.v` -DNO_ICE40_DEFAULT_ASSIGNMENTS
-
-hx8kdemo_syn_tb.vvp: hx8kdemo_tb.v hx8kdemo_syn.v spiflash.v
-	iverilog -s testbench -o $@ $^ `yosys-config --datdir/ice40/cells_sim.v` -DNO_ICE40_DEFAULT_ASSIGNMENTS
-
-hx8kdemo_syn.v: hx8kdemo.json
-	yosys -p 'read_json hx8kdemo.json; write_verilog hx8kdemo_syn.v'
-
-hx8kdemo.asc: hx8kdemo.pcf hx8kdemo.json
-	nextpnr-ice40 --hx8k --package ct256 --asc hx8kdemo.asc --json hx8kdemo.json --pcf hx8kdemo.pcf
-
-hx8kdemo.bin: hx8kdemo.asc
-	icetime -d hx8k -c 12 -mtr hx8kdemo.rpt hx8kdemo.asc
-	icepack hx8kdemo.asc hx8kdemo.bin
-
-hx8kprog: hx8kdemo.bin hx8kdemo_fw.bin
-	iceprog hx8kdemo.bin
-	iceprog -o 1M hx8kdemo_fw.bin
-
-hx8kprog_fw: hx8kdemo_fw.bin
-	iceprog -o 1M hx8kdemo_fw.bin
-
-hx8kdemo_sections.lds: sections.lds
-	$(CROSS)cpp -P -DHX8KDEMO -o $@ $^
-
-hx8kdemo_fw.elf: hx8kdemo_sections.lds start.s firmware.c
-	$(CROSS)gcc $(CFLAGS) -DHX8KDEMO -mabi=ilp32 -march=rv32imc -Wl,--build-id=none,-Bstatic,-T,hx8kdemo_sections.lds,--strip-debug -ffreestanding -nostdlib -o hx8kdemo_fw.elf start.s firmware.c
-
-hx8kdemo_fw.hex: hx8kdemo_fw.elf
-	$(CROSS)objcopy -O verilog hx8kdemo_fw.elf hx8kdemo_fw.hex
-
-hx8kdemo_fw.bin: hx8kdemo_fw.elf
-	$(CROSS)objcopy -O binary hx8kdemo_fw.elf hx8kdemo_fw.bin
+dis: icebreaker_fw.elf
+	$(CROSS)objdump -d icebreaker_fw.elf
 
 # ---- iCE40 IceBreaker Board ----
 
@@ -88,7 +50,7 @@ icebreaker_sections.lds: sections.lds
 	$(CROSS)cpp -P -DICEBREAKER -o $@ $^
 
 icebreaker_fw.elf: icebreaker_sections.lds start.s firmware.c $(DHRY_OBJS)
-	$(CROSS)gcc $(CFLAGS) -DICEBREAKER -DTIME -DRISCV -DUSE_MYSTDLIB -ffreestanding -nostdlib -mabi=ilp32 -march=rv32im -Wl,-Bstatic,-T,icebreaker_sections.lds,-Map,icebreaker_fw.map,--strip-debug -o icebreaker_fw.elf start.s firmware.c $(DHRY_OBJS) -Wno-implicit-int -Wno-implicit-function-declaration
+	$(CROSS)gcc $(CFLAGS) -DICEBREAKER -DTIME -DRISCV -DUSE_MYSTDLIB -ffreestanding -nostdlib -mabi=ilp32 -march=rv32$(RISCV_ISA) -Wl,-Bstatic,-T,icebreaker_sections.lds,-Map,icebreaker_fw.map,--strip-debug -o icebreaker_fw.elf start.s firmware.c $(DHRY_OBJS) -Wno-implicit-int -Wno-implicit-function-declaration
 
 icebreaker_fw.hex: icebreaker_fw.elf
 	$(CROSS)objcopy -O verilog icebreaker_fw.elf icebreaker_fw.hex
@@ -114,7 +76,7 @@ cmos.log: spimemio.v simpleuart.v picosoc.v ../picorv32.v
 clean:
 	rm -f testbench.vvp testbench.vcd spiflash_tb.vvp spiflash_tb.vcd
 	rm -f hx8kdemo_fw.elf hx8kdemo_fw.hex hx8kdemo_fw.bin cmos.log
-	rm -f icebreaker_fw.elf icebreaker_fw.hex icebreaker_fw.bin, icebreaker_fw.map
+	rm -f icebreaker_fw.elf icebreaker_fw.hex icebreaker_fw.bin icebreaker_fw.map icebreaker_fw.d
 	rm -f hx8kdemo.blif hx8kdemo.log hx8kdemo.asc hx8kdemo.rpt hx8kdemo.bin
 	rm -f hx8kdemo_syn.v hx8kdemo_syn_tb.vvp hx8kdemo_tb.vvp
 	rm -f icebreaker.json icebreaker.log icebreaker.asc icebreaker.rpt icebreaker.bin

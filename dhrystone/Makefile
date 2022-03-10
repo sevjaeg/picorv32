@@ -1,7 +1,11 @@
+# Select your RISC-V compiler here (riscv32i/riscv32im/riscv32ic/riscv32imc)
+RISCV_ISA = im
+
 USE_MYSTDLIB = 1
+TOOLCHAIN_PREFIX = /opt/riscv32$(RISCV_ISA)/bin/riscv32-unknown-elf-
+
+CFLAGS = -MD -O3 -mabi=ilp32 -march=rv32$(RISCV_ISA) -DTIME -DRISCV
 OBJS = dhry_1.o dhry_2.o stdlib.o dhry_main.o
-CFLAGS = -MD -O3 -mabi=ilp32 -march=rv32im -DTIME -DRISCV
-TOOLCHAIN_PREFIX = /opt/riscv32im/bin/riscv32-unknown-elf-
 
 ifeq ($(USE_MYSTDLIB),1)
 CFLAGS += -DUSE_MYSTDLIB -ffreestanding -nostdlib
@@ -13,12 +17,18 @@ endif
 test: testbench.vvp dhry.hex
 	vvp -N testbench.vvp
 
-test_trace: testbench.vvp dhry.hex
-	vvp -N $< +trace
-	python3 ../showtrace.py testbench.trace dhry.elf > testbench.ins
+test_la: testbench_la.vvp dhry.hex
+	vvp -N testbench_la.vvp
 
-test_nola: testbench_nola.vvp dhry.hex
-	vvp -N testbench_nola.vvp
+size: dhry.elf
+	$(TOOLCHAIN_PREFIX)size dhry.elf
+
+dis: dhry.elf
+	$(TOOLCHAIN_PREFIX)objdump -d dhry.elf
+
+test_trace: testbench_la.vvp dhry.hex
+	vvp -N $< +trace
+	python3 ../showtrace.py testbench_la.trace dhry.elf > testbench_la.ins
 
 timing: timing.txt
 	grep '^##' timing.txt | gawk 'x != "" {print x,$$3-y;} {x=$$2;y=$$3;}' | sort | uniq -c | \
@@ -27,16 +37,16 @@ timing: timing.txt
 timing.txt: timing.vvp dhry.hex
 	vvp -N timing.vvp > timing.txt
 
+testbench_la.vvp: testbench_la.v ../picorv32.v
+	iverilog -o testbench_la.vvp testbench_la.v ../picorv32.v
+	chmod -x testbench_la.vvp
+
 testbench.vvp: testbench.v ../picorv32.v
 	iverilog -o testbench.vvp testbench.v ../picorv32.v
 	chmod -x testbench.vvp
 
-testbench_nola.vvp: testbench_nola.v ../picorv32.v
-	iverilog -o testbench_nola.vvp testbench_nola.v ../picorv32.v
-	chmod -x testbench_nola.vvp
-
-timing.vvp: testbench.v ../picorv32.v
-	iverilog -o timing.vvp -DTIMING testbench.v ../picorv32.v
+timing.vvp: testbench_la.v ../picorv32.v
+	iverilog -o timing.vvp -DTIMING testbench_la.v ../picorv32.v
 	chmod -x timing.vvp
 
 dhry.hex: dhry.elf
@@ -61,9 +71,9 @@ endif
 dhry_1.o dhry_2.o dhry_main.o: CFLAGS += -Wno-implicit-int -Wno-implicit-function-declaration
 
 clean:
-	rm -rf *.o *.d dhry.elf dhry.map dhry.bin dhry.hex testbench.vvp testbench.vcd timing.vvp timing.txt testbench_nola.vvp
+	rm -rf *.o *.d dhry.elf dhry.map dhry.bin dhry.hex testbench_la.vvp testbench_la.vcd timing.vvp timing.txt testbench_la.vvp testbench.vvp testbench.vcd
 
-.PHONY: test clean
+.PHONY: test clean size
 
 -include *.d
 

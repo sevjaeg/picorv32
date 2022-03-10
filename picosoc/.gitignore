@@ -25,7 +25,6 @@
 /icebreaker_fw.bin
 /icebreaker_fw.d
 /icebreaker_fw.map
-/icebreaker_sections.lds
 /testbench.vcd
 /cmos.log
 

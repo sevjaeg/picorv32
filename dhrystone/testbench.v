@@ -1,3 +1,5 @@
+// A version of the dhrystone test bench that isn't using the look-ahead interface
+
 `timescale 1 ns / 1 ps
 
 module testbench;
@@ -14,28 +16,24 @@ module testbench;
 
 	wire mem_valid;
 	wire mem_instr;
-	wire mem_ready;
+	reg  mem_ready;
 	wire [31:0] mem_addr;
 	wire [31:0] mem_wdata;
-	wire [3:0] mem_wstrb;
+	wire [3:0]  mem_wstrb;
 	reg  [31:0] mem_rdata;
 
-	wire mem_la_read;
-	wire mem_la_write;
-	wire [31:0] mem_la_addr;
-	wire [31:0] mem_la_wdata;
-	wire [3:0] mem_la_wstrb;
-
-	wire trace_valid;
-	wire [35:0] trace_data;
-
 	picorv32 #(
-		.BARREL_SHIFTER(1),
-		.ENABLE_FAST_MUL(1),
+		.ENABLE_REGS_DUALPORT(1),
+		.TWO_STAGE_SHIFT(1),
+		.BARREL_SHIFTER(0),
+		.TWO_CYCLE_COMPARE(0),
+		.TWO_CYCLE_ALU(0),
+		.COMPRESSED_ISA(0),
+		.ENABLE_MUL(1),
+		.ENABLE_FAST_MUL(0),
 		.ENABLE_DIV(1),
 		.PROGADDR_RESET('h10000),
-		.STACKADDR('h10000),
-		.ENABLE_TRACE(1)
+		.STACKADDR('h10000)
 	) uut (
 		.clk         (clk        ),
 		.resetn      (resetn     ),
@@ -46,63 +44,51 @@ module testbench;
 		.mem_addr    (mem_addr   ),
 		.mem_wdata   (mem_wdata  ),
 		.mem_wstrb   (mem_wstrb  ),
-		.mem_rdata   (mem_rdata  ),
-		.mem_la_read (mem_la_read ),
-		.mem_la_write(mem_la_write),
-		.mem_la_addr (mem_la_addr ),
-		.mem_la_wdata(mem_la_wdata),
-		.mem_la_wstrb(mem_la_wstrb),
-		.trace_valid (trace_valid),
-		.trace_data  (trace_data )
+		.mem_rdata   (mem_rdata  )
 	);
 
 	reg [7:0] memory [0:256*1024-1];
 	initial $readmemh("dhry.hex", memory);
 
-	assign mem_ready = 1;
-
 	always @(posedge clk) begin
-		mem_rdata[ 7: 0] <= mem_la_read ? memory[mem_la_addr + 0] : 'bx;
-		mem_rdata[15: 8] <= mem_la_read ? memory[mem_la_addr + 1] : 'bx;
-		mem_rdata[23:16] <= mem_la_read ? memory[mem_la_addr + 2] : 'bx;
-		mem_rdata[31:24] <= mem_la_read ? memory[mem_la_addr + 3] : 'bx;
-		if (mem_la_write) begin
-			case (mem_la_addr)
-				32'h1000_0000: begin
-`ifndef TIMING
-					$write("%c", mem_la_wdata);
-					$fflush();
-`endif
-				end
-				default: begin
-					if (mem_la_wstrb[0]) memory[mem_la_addr + 0] <= mem_la_wdata[ 7: 0];
-					if (mem_la_wstrb[1]) memory[mem_la_addr + 1] <= mem_la_wdata[15: 8];
-					if (mem_la_wstrb[2]) memory[mem_la_addr + 2] <= mem_la_wdata[23:16];
-					if (mem_la_wstrb[3]) memory[mem_la_addr + 3] <= mem_la_wdata[31:24];
-				end
-			endcase
+		mem_ready <= 1'b0;
+
+		mem_rdata[ 7: 0] <= 'bx;
+		mem_rdata[15: 8] <= 'bx;
+		mem_rdata[23:16] <= 'bx;
+		mem_rdata[31:24] <= 'bx;
+
+		if (mem_valid & !mem_ready) begin
+			if (|mem_wstrb) begin
+				mem_ready <= 1'b1;
+
+				case (mem_addr)
+					32'h1000_0000: begin
+						$write("%c", mem_wdata);
+						$fflush();
+					end
+					default: begin
+						if (mem_wstrb[0]) memory[mem_addr + 0] <= mem_wdata[ 7: 0];
+						if (mem_wstrb[1]) memory[mem_addr + 1] <= mem_wdata[15: 8];
+						if (mem_wstrb[2]) memory[mem_addr + 2] <= mem_wdata[23:16];
+						if (mem_wstrb[3]) memory[mem_addr + 3] <= mem_wdata[31:24];
+					end
+				endcase
+			end
+			else begin
+				mem_ready <= 1'b1;
+
+				mem_rdata[ 7: 0] <= memory[mem_addr + 0];
+				mem_rdata[15: 8] <= memory[mem_addr + 1];
+				mem_rdata[23:16] <= memory[mem_addr + 2];
+				mem_rdata[31:24] <= memory[mem_addr + 3];
+			end
 		end
 	end
 
 	initial begin
 		$dumpfile("testbench.vcd");
 		$dumpvars(0, testbench);
-	end
-
-	integer trace_file;
-
-	initial begin
-		if ($test$plusargs("trace")) begin
-			trace_file = $fopen("testbench.trace", "w");
-			repeat (10) @(posedge clk);
-			while (!trap) begin
-				@(posedge clk);
-				if (trace_valid)
-					$fwrite(trace_file, "%x\n", trace_data);
-			end
-			$fclose(trace_file);
-			$display("Finished writing testbench.trace.");
-		end
 	end
 
 	always @(posedge clk) begin
@@ -112,15 +98,4 @@ module testbench;
 			$finish;
 		end
 	end
-
-`ifdef TIMING
-	initial begin
-		repeat (100000) @(posedge clk);
-		$finish;
-	end
-	always @(posedge clk) begin
-		if (uut.dbg_next)
-			$display("## %-s %d", uut.dbg_ascii_instr ? uut.dbg_ascii_instr : "pcpi", uut.count_cycle);
-	end
-`endif
 endmodule

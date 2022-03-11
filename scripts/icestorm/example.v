@@ -28,12 +28,15 @@ module top (
 	reg [31:0] mem_rdata;
 
 	picorv32 #(
-		.ENABLE_COUNTERS(0),
-		.LATCHED_MEM_RDATA(1),
-		.TWO_STAGE_SHIFT(0),
-		.TWO_CYCLE_ALU(1),
-		.CATCH_MISALIGN(0),
-		.CATCH_ILLINSN(0)
+		.ENABLE_REGS_DUALPORT(1),
+		.TWO_STAGE_SHIFT(1),
+		.BARREL_SHIFTER(0),
+		.TWO_CYCLE_COMPARE(0),
+		.TWO_CYCLE_ALU(0),
+		.COMPRESSED_ISA(0),
+		.ENABLE_MUL(0),
+		.ENABLE_FAST_MUL(0),
+		.ENABLE_DIV(0),
 	) cpu (
 		.clk      (clk      ),
 		.resetn   (resetn   ),

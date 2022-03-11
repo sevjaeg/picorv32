@@ -69,11 +69,16 @@ module picosoc (
 	input  flash_io2_di,
 	input  flash_io3_di
 );
-	parameter [0:0] BARREL_SHIFTER = 1;
+
+	parameter [0:0] ENABLE_REGS_DUALPORT = 1;
+	parameter [0:0] TWO_STAGE_SHIFT = 1;
+	parameter [0:0] BARREL_SHIFTER = 0;
+	parameter [0:0] TWO_CYCLE_COMPARE = 0;
+	parameter [0:0] TWO_CYCLE_ALU = 0;
+	parameter [0:0] ENABLE_COMPRESSED = 1;
 	parameter [0:0] ENABLE_MUL = 1;
 	parameter [0:0] ENABLE_DIV = 1;
 	parameter [0:0] ENABLE_FAST_MUL = 0;
-	parameter [0:0] ENABLE_COMPRESSED = 1;
 	parameter [0:0] ENABLE_COUNTERS = 1;
 	parameter [0:0] ENABLE_IRQ_QREGS = 0;
 
@@ -135,7 +140,11 @@ module picosoc (
 		.STACKADDR(STACKADDR),
 		.PROGADDR_RESET(PROGADDR_RESET),
 		.PROGADDR_IRQ(PROGADDR_IRQ),
+		.ENABLE_REGS_DUALPORT(ENABLE_REGS_DUALPORT),
+		.TWO_STAGE_SHIFT(TWO_STAGE_SHIFT),
 		.BARREL_SHIFTER(BARREL_SHIFTER),
+		.TWO_CYCLE_COMPARE(TWO_CYCLE_COMPARE),
+		.TWO_CYCLE_ALU(TWO_CYCLE_ALU),
 		.COMPRESSED_ISA(ENABLE_COMPRESSED),
 		.ENABLE_COUNTERS(ENABLE_COUNTERS),
 		.ENABLE_MUL(ENABLE_MUL),

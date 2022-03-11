@@ -45,6 +45,15 @@ module testbench;
 	end
 
 	picorv32 #(
+		.ENABLE_REGS_DUALPORT(1),
+		.TWO_STAGE_SHIFT(1),
+		.BARREL_SHIFTER(0),
+		.TWO_CYCLE_COMPARE(0),
+		.TWO_CYCLE_ALU(0),
+		.COMPRESSED_ISA(0),
+		.ENABLE_MUL(1),
+		.ENABLE_FAST_MUL(0),
+		.ENABLE_DIV(1)
 	) uut (
 		.clk         (clk        ),
 		.resetn      (resetn     ),

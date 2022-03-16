@@ -23,9 +23,7 @@
 #include "../dhrystone/dhry_top.h"
 
 #ifdef ICEBREAKER
-#  define MEM_TOTAL 0x20000 /* 128 KB */
-#elif HX8KDEMO
-#  define MEM_TOTAL 0x200 /* 2 KB */
+#  define MEM_TOTAL 0x3000
 #else
 #  error "Set -DICEBREAKER or -DHX8KDEMO when compiling firmware.c"
 #endif
@@ -41,6 +39,7 @@ extern uint32_t sram;
 
 // --------------------------------------------------------
 
+#if 0
 extern uint32_t flashio_worker_begin;
 extern uint32_t flashio_worker_end;
 
@@ -56,61 +55,6 @@ void flashio(uint8_t *data, int len, uint8_t wrencmd)
 
 	((void(*)(uint8_t*, uint32_t, uint32_t))func)(data, len, wrencmd);
 }
-
-#ifdef HX8KDEMO
-void set_flash_qspi_flag()
-{
-	uint8_t buffer[8];
-	uint32_t addr_cr1v = 0x800002;
-
-	// Read Any Register (RDAR 65h)
-	buffer[0] = 0x65;
-	buffer[1] = addr_cr1v >> 16;
-	buffer[2] = addr_cr1v >> 8;
-	buffer[3] = addr_cr1v;
-	buffer[4] = 0; // dummy
-	buffer[5] = 0; // rdata
-	flashio(buffer, 6, 0);
-	uint8_t cr1v = buffer[5];
-
-	// Write Enable (WREN 06h) + Write Any Register (WRAR 71h)
-	buffer[0] = 0x71;
-	buffer[1] = addr_cr1v >> 16;
-	buffer[2] = addr_cr1v >> 8;
-	buffer[3] = addr_cr1v;
-	buffer[4] = cr1v | 2; // Enable QSPI
-	flashio(buffer, 5, 0x06);
-}
-
-void set_flash_latency(uint8_t value)
-{
-	reg_spictrl = (reg_spictrl & ~0x007f0000) | ((value & 15) << 16);
-
-	uint32_t addr = 0x800004;
-	uint8_t buffer_wr[5] = {0x71, addr >> 16, addr >> 8, addr, 0x70 | value};
-	flashio(buffer_wr, 5, 0x06);
-}
-
-void set_flash_mode_spi()
-{
-	reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00000000;
-}
-
-void set_flash_mode_dual()
-{
-	reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00400000;
-}
-
-void set_flash_mode_quad()
-{
-	reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00200000;
-}
-
-void set_flash_mode_qddr()
-{
-	reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00600000;
-}
-#endif
 
 #ifdef ICEBREAKER
 void set_flash_qspi_flag()
@@ -154,6 +98,7 @@ void enable_flash_crm()
 	reg_spictrl |= 0x00100000;
 }
 #endif
+#endif
 
 // --------------------------------------------------------
 
@@ -170,6 +115,7 @@ void print(const char *p)
 		putchar(*(p++));
 }
 
+#if 0
 void print_hex(uint32_t v, int digits)
 {
 	for (int i = 7; i >= 0; i--) {
@@ -218,6 +164,7 @@ void print_dec(uint32_t v)
 	else if (v >= 1) { putchar('1'); v -= 1; }
 	else putchar('0');
 }
+#endif
 
 char getchar_prompt(char *prompt)
 {
@@ -252,6 +199,7 @@ char getchar()
 	return getchar_prompt(0);
 }
 
+#if 0
 void cmd_print_spi_state()
 {
 	print("SPI State:\n");
@@ -356,37 +304,6 @@ void cmd_read_flash_id()
 
 // --------------------------------------------------------
 
-#ifdef HX8KDEMO
-uint8_t cmd_read_flash_regs_print(uint32_t addr, const char *name)
-{
-	set_flash_latency(8);
-
-	uint8_t buffer[6] = {0x65, addr >> 16, addr >> 8, addr, 0, 0};
-	flashio(buffer, 6, 0);
-
-	print("0x");
-	print_hex(addr, 6);
-	print(" ");
-	print(name);
-	print(" 0x");
-	print_hex(buffer[5], 2);
-	print("\n");
-
-	return buffer[5];
-}
-
-void cmd_read_flash_regs()
-{
-	print("\n");
-	uint8_t sr1v = cmd_read_flash_regs_print(0x800000, "SR1V");
-	uint8_t sr2v = cmd_read_flash_regs_print(0x800001, "SR2V");
-	uint8_t cr1v = cmd_read_flash_regs_print(0x800002, "CR1V");
-	uint8_t cr2v = cmd_read_flash_regs_print(0x800003, "CR2V");
-	uint8_t cr3v = cmd_read_flash_regs_print(0x800004, "CR3V");
-	uint8_t vdlp = cmd_read_flash_regs_print(0x800005, "VDLP");
-}
-#endif
-
 #ifdef ICEBREAKER
 uint8_t cmd_read_flash_reg(uint8_t cmd)
 {
@@ -394,6 +311,7 @@ uint8_t cmd_read_flash_reg(uint8_t cmd)
 	flashio(buffer, 2, 0);
 	return buffer[1];
 }
+#endif
 
 void print_reg_bit(int val, const char *name)
 {
@@ -450,6 +368,7 @@ void cmd_read_flash_regs()
 
 // --------------------------------------------------------
 
+/*
 uint32_t cmd_benchmark(bool verbose, uint32_t *instns_p)
 {
 	uint8_t data[256];
@@ -510,107 +429,6 @@ uint32_t cmd_benchmark(bool verbose, uint32_t *instns_p)
 
 // --------------------------------------------------------
 
-#ifdef HX8KDEMO
-void cmd_benchmark_all()
-{
-	uint32_t instns = 0;
-
-	print("default        ");
-	reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00000000;
-	print(": ");
-	print_hex(cmd_benchmark(false, &instns), 8);
-	putchar('\n');
-
-	for (int i = 8; i > 0; i--)
-	{
-		print("dspi-");
-		print_dec(i);
-		print("         ");
-
-		set_flash_latency(i);
-		reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00400000;
-
-		print(": ");
-		print_hex(cmd_benchmark(false, &instns), 8);
-		putchar('\n');
-	}
-
-	for (int i = 8; i > 0; i--)
-	{
-		print("dspi-crm-");
-		print_dec(i);
-		print("     ");
-
-		set_flash_latency(i);
-		reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00500000;
-
-		print(": ");
-		print_hex(cmd_benchmark(false, &instns), 8);
-		putchar('\n');
-	}
-
-	for (int i = 8; i > 0; i--)
-	{
-		print("qspi-");
-		print_dec(i);
-		print("         ");
-
-		set_flash_latency(i);
-		reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00200000;
-
-		print(": ");
-		print_hex(cmd_benchmark(false, &instns), 8);
-		putchar('\n');
-	}
-
-	for (int i = 8; i > 0; i--)
-	{
-		print("qspi-crm-");
-		print_dec(i);
-		print("     ");
-
-		set_flash_latency(i);
-		reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00300000;
-
-		print(": ");
-		print_hex(cmd_benchmark(false, &instns), 8);
-		putchar('\n');
-	}
-
-	for (int i = 8; i > 0; i--)
-	{
-		print("qspi-ddr-");
-		print_dec(i);
-		print("     ");
-
-		set_flash_latency(i);
-		reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00600000;
-
-		print(": ");
-		print_hex(cmd_benchmark(false, &instns), 8);
-		putchar('\n');
-	}
-
-	for (int i = 8; i > 0; i--)
-	{
-		print("qspi-ddr-crm-");
-		print_dec(i);
-		print(" ");
-
-		set_flash_latency(i);
-		reg_spictrl = (reg_spictrl & ~0x00700000) | 0x00700000;
-
-		print(": ");
-		print_hex(cmd_benchmark(false, &instns), 8);
-		putchar('\n');
-	}
-
-	print("instns         : ");
-	print_hex(instns, 8);
-	putchar('\n');
-}
-#endif
-
 #ifdef ICEBREAKER
 void cmd_benchmark_all()
 {
@@ -654,6 +472,7 @@ void cmd_benchmark_all()
 }
 #endif
 
+
 void cmd_echo()
 {
 	print("Return to menu by sending '!'\n\n");
@@ -661,116 +480,21 @@ void cmd_echo()
 	while ((c = getchar()) != '!')
 		putchar(c);
 }
+*/
 
 // --------------------------------------------------------
 
 void main()
 {
-	reg_leds = 31;
+	//reg_leds = 31;
 	reg_uart_clkdiv = 104;
-	print("Booting..\n");
+	//print("Booting..\n");
 
-	reg_leds = 63;
-	set_flash_qspi_flag();
+	//reg_leds = 63;
+	//set_flash_qspi_flag();
+	
+	while (getchar_prompt("ENTER to continue..\n") != '\r') { /* wait */ }
 
-	reg_leds = 127;
-	while (getchar_prompt("Press ENTER to continue..\n") != '\r') { /* wait */ }
-
-	print("\n");
-	print("  ____  _          ____         ____\n");
-	print(" |  _ \\(_) ___ ___/ ___|  ___  / ___|\n");
-	print(" | |_) | |/ __/ _ \\___ \\ / _ \\| |\n");
-	print(" |  __/| | (_| (_) |__) | (_) | |___\n");
-	print(" |_|   |_|\\___\\___/____/ \\___/ \\____|\n");
-	print("\n");
-
-	print("Total memory: ");
-	print_dec(MEM_TOTAL / 1024);
-	print(" KiB\n");
-	print("\n");
-
-	//cmd_memtest(); // test overwrites bss and data memory
-	print("\n");
-
-	cmd_print_spi_state();
-	print("\n");
-
-	while (1)
-	{
-		print("\n");
-
-		print("Select an action:\n");
-		print("\n");
-		print("   [1] Read SPI Flash ID\n");
-		print("   [2] Read SPI Config Regs\n");
-		print("   [3] Switch to default mode\n");
-		print("   [4] Switch to Dual I/O mode\n");
-		print("   [5] Switch to Quad I/O mode\n");
-		print("   [6] Switch to Quad DDR mode\n");
-		print("   [7] Toggle continuous read mode\n");
-		print("   [9] Run simplistic benchmark\n");
-		print("   [0] Benchmark all configs\n");
-		print("   [D] Run Dhrystone Benchmark\n");
-		//print("   [M] Run Memtest\n");
-		print("   [S] Print SPI state\n");
-		print("   [e] Echo UART\n");
-		print("\n");
-
-		for (int rep = 10; rep > 0; rep--)
-		{
-			print("Command> ");
-			char cmd = getchar();
-			if (cmd > 32 && cmd < 127)
-				putchar(cmd);
-			print("\n");
-
-			switch (cmd)
-			{
-			case '1':
-				cmd_read_flash_id();
-				break;
-			case '2':
-				cmd_read_flash_regs();
-				break;
-			case '3':
-				set_flash_mode_spi();
-				break;
-			case '4':
-				set_flash_mode_dual();
-				break;
-			case '5':
-				set_flash_mode_quad();
-				break;
-			case '6':
-				set_flash_mode_qddr();
-				break;
-			case '7':
-				reg_spictrl = reg_spictrl ^ 0x00100000;
-				break;
-			case '9':
-				cmd_benchmark(true, 0);
-				break;
-			case '0':
-				cmd_benchmark_all();
-				break;
-			case 'D':
-				run_dhrystone();
-				break;
-			// Overwrites RAM be careful
-			//case 'M':
-			//	cmd_memtest();
-			//	break;
-			case 'S':
-				cmd_print_spi_state();
-				break;
-			case 'e':
-				cmd_echo();
-				break;
-			default:
-				continue;
-			}
-
-			break;
-		}
-	}
+	run_dhrystone();
+	return;
 }

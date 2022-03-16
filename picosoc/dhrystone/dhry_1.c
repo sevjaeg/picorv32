@@ -17,6 +17,9 @@
 
 #include "dhry.h"
 
+// Reduce memory consumption without altering computation
+#define REDUCED_SIZE 1
+
 #ifdef USE_MYSTDLIB
 extern char     *malloc ();
 #else
@@ -33,18 +36,22 @@ Boolean         Bool_Glob;
 char            Ch_1_Glob,
                 Ch_2_Glob;
 int             Arr_1_Glob [50];
+#if REDUCED_SIZE
+int             Arr_2_Glob [30] [50];
+#else
 int             Arr_2_Glob [50] [50];
+#endif
 
 Enumeration     Func_1 ();
   /* forward declaration necessary since Enumeration may not simply be int */
 
 #ifndef REG
-        Boolean Reg = false;
+        //Boolean Reg = false;
 #define REG
         /* REG becomes defined as empty */
         /* i.e. no register variables   */
 #else
-        Boolean Reg = true;
+        //Boolean Reg = true;
 #endif
 
 /* variables for time measurement: */
@@ -95,9 +102,7 @@ void run_dhrystone ()
   REG   int             Run_Index;
   REG   int             Number_Of_Runs;
 
-  printf ("\n");
-  printf ("Dhrystone Benchmark, Version 2.1 (Language: C)\n");
-  printf ("\n");
+  printf ("\nDhrystone v2.1\n\n");
 
   /* Initializations */
 
@@ -118,26 +123,24 @@ void run_dhrystone ()
         /* Warning: With 16-Bit processors and Number_Of_Runs > 32000,  */
         /* overflow may occur for this array element.                   */
   
-  if (Reg)
+  /*if (Reg)
   {
-    printf ("Program compiled with 'register' attribute\n");
-    printf ("\n");
+    //printf ("Program compiled with 'register' attribute\n");
+    //printf ("\n");
   }
   else
   {
-    printf ("Program compiled without 'register' attribute\n");
-    printf ("\n");
-  }
-  printf ("Please give the number of runs through the benchmark: ");
+    printf ("Program compiled without 'register' attribute\n\n");
+  }*/
+  //printf ("Please give the number of runs through the benchmark: ");
   {
     // int n;
     // scanf ("%d", &n);
-    Number_Of_Runs = 10;
+    Number_Of_Runs = 100;
   }
-  printf ("\n");
 
-  printf ("Execution starts, %d runs through Dhrystone\n", Number_Of_Runs);
-
+  // printf ("\nExecution starts, %d runs through Dhrystone\n", Number_Of_Runs);
+  
   /***************/
   /* Start timer */
   /***************/
@@ -214,8 +217,8 @@ void run_dhrystone ()
 #endif
 #endif
 
-  printf("Execution ends\n");
-  printf ("\n");
+  /*
+  printf("Execution ends\n\n");
   
   printf ("Final values of the variables used in the benchmark:\n");
   printf ("\n");
@@ -267,27 +270,28 @@ void run_dhrystone ()
   printf ("Str_2_Loc:           %s\n", Str_2_Loc);
   printf ("        should be:   DHRYSTONE PROGRAM, 2'ND STRING\n");
   printf ("\n");
-  
+  */
+
 
   User_Time = End_Time - Begin_Time;
 
 #ifdef RISCV
   User_Insn = End_Insn - Begin_Insn;
 
-  printf("Number_Of_Runs: %d\n", Number_Of_Runs);
-  printf("User_Time: %d cycles, %d insn\n", User_Time, User_Insn);
+  printf("Runs: %d\n", Number_Of_Runs);
+  printf("%d cycles, %d insn\n", User_Time, User_Insn);
 
-  int Cycles_Per_Instruction_x1000 = (1000 * User_Time) / User_Insn;
-  printf("Cycles_Per_Instruction: %d.%d%d%d\n", Cycles_Per_Instruction_x1000 / 1000,
-		(Cycles_Per_Instruction_x1000 / 100) % 10,
-		(Cycles_Per_Instruction_x1000 / 10) % 10,
-		(Cycles_Per_Instruction_x1000 / 1) % 10);
+  //int Cycles_Per_Instruction_x1000 = (1000 * User_Time) / User_Insn;
+  //printf("Cycles_Per_Instruction: %d.%d%d%d\n", Cycles_Per_Instruction_x1000 / 1000,
+	//	(Cycles_Per_Instruction_x1000 / 100) % 10,
+	//	(Cycles_Per_Instruction_x1000 / 10) % 10,
+	//	(Cycles_Per_Instruction_x1000 / 1) % 10);
 
   int Dhrystones_Per_Second_Per_MHz = (Number_Of_Runs * 1000000) / User_Time;
-  printf("Dhrystones_Per_Second_Per_MHz: %d\n", Dhrystones_Per_Second_Per_MHz);
+  printf("Dhrystones/Second_MHz: %d\n", Dhrystones_Per_Second_Per_MHz);
 
   int DMIPS_Per_MHz_x1000 = (1000 * Dhrystones_Per_Second_Per_MHz) / 1757;
-  printf("DMIPS_Per_MHz: %d.%d%d%d\n", DMIPS_Per_MHz_x1000 / 1000,
+  printf("DMIPS/MHz: %d.%d%d%d\n", DMIPS_Per_MHz_x1000 / 1000,
 		(DMIPS_Per_MHz_x1000 / 100) % 10,
 		(DMIPS_Per_MHz_x1000 / 10) % 10,
 		(DMIPS_Per_MHz_x1000 / 1) % 10);

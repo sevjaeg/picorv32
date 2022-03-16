@@ -21,7 +21,8 @@
 `error "icebreaker.v must be read before picosoc.v!"
 `endif
 
-`define PICOSOC_MEM ice40up5k_spram
+// SRAM only usable if the program is located in Flash
+// `define PICOSOC_MEM ice40up5k_spram
 
 module icebreaker (
 	input clk,
@@ -45,7 +46,7 @@ module icebreaker (
 	inout  flash_io2,
 	inout  flash_io3
 );
-	parameter integer MEM_WORDS = 32768;
+	parameter integer MEM_WORDS = 3072; //32768 if SRAM is used, 3072 for BRAM
 
 	reg [5:0] reset_cnt = 0;
 	wire resetn = &reset_cnt;
@@ -113,10 +114,11 @@ module icebreaker (
 		.TWO_CYCLE_COMPARE(0),
 		.TWO_CYCLE_ALU(0),
 		.ENABLE_COMPRESSED(0),
-		.ENABLE_MUL(1),
+		.ENABLE_MUL(0),
 		.ENABLE_FAST_MUL(0),
-		.ENABLE_DIV(1),
-		.MEM_WORDS(MEM_WORDS)
+		.ENABLE_DIV(0),
+		.MEM_WORDS(MEM_WORDS),
+		.PROGADDR_RESET(32'h0000_0000)  // BRAM  
 	) soc (
 		.clk          (clk         ),
 		.resetn       (resetn      ),

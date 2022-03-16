@@ -1,5 +1,5 @@
 #ifdef ICEBREAKER
-#  define MEM_TOTAL 0x20000 /* 128 KB */
+#  define MEM_TOTAL 0x3000 /* 12 KB */
 #elif HX8KDEMO
 #  define MEM_TOTAL 0x200 /* 2 KB */
 #else
@@ -26,7 +26,7 @@ SECTIONS {
         . = ALIGN(4);
         _etext = .;        /* define a global symbol at end of code */
         _sidata = _etext;  /* This is used by the startup in order to initialize the .data secion */
-    } >FLASH
+    } >RAM
 
 
     /* This is the initialized data section

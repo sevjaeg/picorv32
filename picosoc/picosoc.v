@@ -84,7 +84,7 @@ module picosoc (
 
 	parameter integer MEM_WORDS = 256;
 	parameter [31:0] STACKADDR = (4*MEM_WORDS);       // end of memory
-	parameter [31:0] PROGADDR_RESET = 32'h 0010_0000; // 1 MB into flash
+	parameter [31:0] PROGADDR_RESET = 32'h 0010_0000; // 1 MB into flash 0010_0000
 	parameter [31:0] PROGADDR_IRQ = 32'h 0000_0000;
 
 	reg [31:0] irq;
@@ -259,6 +259,10 @@ module picosoc_mem #(
 	output reg [31:0] rdata
 );
 	reg [31:0] mem [0:WORDS-1];
+
+	initial begin
+		$readmemh("icebreaker_fw_bram.hex", mem);
+	end
 
 	always @(posedge clk) begin
 		rdata <= mem[addr];

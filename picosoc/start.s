@@ -41,11 +41,11 @@ li a1, 1
 sw a1, 0(a0)
 
 # zero initialize entire scratchpad memory
-li a0, 0x00000000
-setmemloop:
-sw a0, 0(a0)
-addi a0, a0, 4
-blt a0, sp, setmemloop
+#li a0, 0x00000000
+#setmemloop:
+#sw a0, 0(a0)
+#addi a0, a0, 4
+#blt a0, sp, setmemloop
 
 # Update LEDs
 li a0, 0x03000000

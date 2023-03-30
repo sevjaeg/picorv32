@@ -27,7 +27,7 @@ synsim: icebreaker_syn_tb.vvp icebreaker_fw.hex
 	vvp -N $< +firmware=icebreaker_fw.hex
 
 icebreaker.json: icebreaker.v spimemio.v simpleuart.v picosoc.v ice40up5k_spram.v ../picorv32.v icebreaker_fw_random.hex
-	yosys -v3 -ql icebreaker.log -p 'synth_ice40 -dsp -top icebreaker -json icebreaker.json'  $(filter %.v, $^)
+	yosys -f verilog -v3 -ql icebreaker.log -p 'synth_ice40 -dsp -top icebreaker -json icebreaker.json'  $(filter %.v, $^)
 
 icebreaker_tb.vvp: icebreaker_tb.v icebreaker.v ice40up5k_spram.v spimemio.v simpleuart.v picosoc.v ../picorv32.v spiflash.v
 	iverilog -v -s testbench -o $@ $^ `yosys-config --datdir/ice40/cells_sim.v` -DNO_ICE40_DEFAULT_ASSIGNMENTS
